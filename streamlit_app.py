@@ -25,18 +25,20 @@ poke_audio = pokemon['cries']['latest']
 poke_height = pokemon["height"]
 poke_weight = pokemon["weight"]
 poke_exp = pokemon["base_experience"]
-
+poke_species = [x["type"]["name"] for x in pokemon["types"]]
 poke_image_other = pokemon['sprites']['other']["official-artwork"]["front_default"]
-
 pokemon_stats = {stat['stat']['name']: stat['base_stat'] for stat in pokemon["stats"]}
 
 st.title(poke_name.title())
 # Creating columns with a small gap
 col1, col2 = st.columns(2, gap="small")
 with col1:
-    st.metric(label="Height", value=f"{poke_height} m")  # dm for decimeters
+    col1.write('Abilities')  # dm for decimeters
+    for i in poke_species:
+        col1.subheader(i.title())
     
 with col2:
+    st.metric(label="Height", value=f"{poke_height} m")  # dm for decimeters
     st.metric(label="Weight", value=f"{poke_weight} kg")  # hg for hectograms
 
 

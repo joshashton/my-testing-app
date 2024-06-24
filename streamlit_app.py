@@ -6,7 +6,6 @@ import requests
 ## PPrint is 'Pretty Print' Which lets us print less offensive JSON
 from pprint import pprint
 
-import seaborn as sns # visualisation!
 import matplotlib.pyplot as plt # visualisation!
 
 import plotly.express as px

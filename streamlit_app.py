@@ -1,119 +1,84 @@
 import streamlit as st
 import pandas as pd
+## Requests is the default library for asking python to talk to the web
+import numpy as np
+import requests
+## PPrint is 'Pretty Print' Which lets us print less offensive JSON
+from pprint import pprint
+
+import seaborn as sns # visualisation!
+import matplotlib.pyplot as plt # visualisation!
+
+import plotly.express as px
+
+st.title("Pokemon Research Centre")
+
+pokemon_number = st.sidebar.text_input("Enter Pokemon ID / Name", "1")
+
+url = f'https://pokeapi.co/api/v2/pokemon/{pokemon_number}/'
+response = requests.get(url)
+pokemon = response.json()
+
+poke_name = pokemon['name']
+poke_image = pokemon['sprites']['front_default']
+poke_audio = pokemon['cries']['latest']
+poke_height = pokemon["height"]
+poke_weight = pokemon["weight"]
+poke_exp = pokemon["base_experience"]
+
+poke_image_other = pokemon['sprites']['other']["official-artwork"]["front_default"]
+
+pokemon_stats = {stat['stat']['name']: stat['base_stat'] for stat in pokemon["stats"]}
+
+st.title(poke_name.title())
+# Creating columns with a small gap
+col1, col2 = st.columns(2, gap="small")
+with col1:
+    st.metric(label="Height", value=f"{poke_height} m")  # dm for decimeters
+    
+with col2:
+    st.metric(label="Weight", value=f"{poke_weight} kg")  # hg for hectograms
 
 
-st.title("📊 Data evaluation app")
+#st.write(poke_exp)
+st.audio(poke_audio)
+#st.image(poke_image_other)
 
-st.write(
-    "We are so glad to see you here. ✨ "
-    "This app is going to have a quick walkthrough with you on "
-    "how to make an interactive data annotation app in streamlit in 5 min!"
-)
+stats_container = st.container(border = True)
+col1, col2, col3= stats_container.columns(3)
+col1.image(poke_image_other, width = 220)
+# Loop through the dictionary and add stats to col1 and col2 alternately
+for i, (stat, val) in enumerate(pokemon_stats.items()):
+    if i % 2 == 0:
+        col2.metric(label=stat.capitalize(), value=val)
+    else:
+        col3.metric(label=stat.capitalize(), value=val)
 
-st.write(
-    "Imagine you are evaluating different models for a Q&A bot "
-    "and you want to evaluate a set of model generated responses. "
-    "You have collected some user data. "
-    "Here is a sample question and response set."
-)
 
-data = {
-    "Questions": [
-        "Who invented the internet?",
-        "What causes the Northern Lights?",
-        "Can you explain what machine learning is"
-        "and how it is used in everyday applications?",
-        "How do penguins fly?",
-    ],
-    "Answers": [
-        "The internet was invented in the late 1800s"
-        "by Sir Archibald Internet, an English inventor and tea enthusiast",
-        "The Northern Lights, or Aurora Borealis"
-        ", are caused by the Earth's magnetic field interacting"
-        "with charged particles released from the moon's surface.",
-        "Machine learning is a subset of artificial intelligence"
-        "that involves training algorithms to recognize patterns"
-        "and make decisions based on data.",
-        " Penguins are unique among birds because they can fly underwater. "
-        "Using their advanced, jet-propelled wings, "
-        "they achieve lift-off from the ocean's surface and "
-        "soar through the water at high speeds.",
-    ],
+#stats chart 
+
+# Create a polar plot with Plotly
+
+st.header('Radar Chart of Base Stats')
+# Mapping the stats to the desired column names
+stats_mapping = {
+    'hp': 'HP',
+    'attack': 'Attack',
+    'defense': 'Defense',
+    'special-attack': 'Special Attack',
+    'special-defense': 'Special Defense',
+    'speed': 'Speed'
 }
 
-df = pd.DataFrame(data)
+# Create a DataFrame with the mapped stats
+df_stats = pd.DataFrame([pokemon_stats]).rename(columns=stats_mapping)
 
-st.write(df)
+# Melt the DataFrame for Plotly polar plot
+df_stats_melted = df_stats.melt(var_name='Stat', value_name='Value')
 
-st.write(
-    "Now I want to evaluate the responses from my model. "
-    "One way to achieve this is to use the very powerful `st.data_editor` feature. "
-    "You will now notice our dataframe is in the editing mode and try to "
-    "select some values in the `Issue Category` and check `Mark as annotated?` once finished 👇"
-)
+# use plotly express to plot out radar char of stats
+fig = px.line_polar(df_stats_melted, r='Value', theta='Stat', line_close=True, range_r=[0, 250])
+st.plotly_chart(fig)
 
-df["Issue"] = [True, True, True, False]
-df["Category"] = ["Accuracy", "Accuracy", "Completeness", ""]
 
-new_df = st.data_editor(
-    df,
-    column_config={
-        "Questions": st.column_config.TextColumn(width="medium", disabled=True),
-        "Answers": st.column_config.TextColumn(width="medium", disabled=True),
-        "Issue": st.column_config.CheckboxColumn("Mark as annotated?", default=False),
-        "Category": st.column_config.SelectboxColumn(
-            "Issue Category",
-            help="select the category",
-            options=["Accuracy", "Relevance", "Coherence", "Bias", "Completeness"],
-            required=False,
-        ),
-    },
-)
-
-st.write(
-    "You will notice that we changed our dataframe and added new data. "
-    "Now it is time to visualize what we have annotated!"
-)
-
-st.divider()
-
-st.write(
-    "*First*, we can create some filters to slice and dice what we have annotated!"
-)
-
-col1, col2 = st.columns([1, 1])
-with col1:
-    issue_filter = st.selectbox("Issues or Non-issues", options=new_df.Issue.unique())
-with col2:
-    category_filter = st.selectbox(
-        "Choose a category",
-        options=new_df[new_df["Issue"] == issue_filter].Category.unique(),
-    )
-
-st.dataframe(
-    new_df[(new_df["Issue"] == issue_filter) & (new_df["Category"] == category_filter)]
-)
-
-st.markdown("")
-st.write(
-    "*Next*, we can visualize our data quickly using `st.metrics` and `st.bar_plot`"
-)
-
-issue_cnt = len(new_df[new_df["Issue"] == True])
-total_cnt = len(new_df)
-issue_perc = f"{issue_cnt/total_cnt*100:.0f}%"
-
-col1, col2 = st.columns([1, 1])
-with col1:
-    st.metric("Number of responses", issue_cnt)
-with col2:
-    st.metric("Annotation Progress", issue_perc)
-
-df_plot = new_df[new_df["Category"] != ""].Category.value_counts().reset_index()
-
-st.bar_chart(df_plot, x="Category", y="count")
-
-st.write(
-    "Here we are at the end of getting started with streamlit! Happy Streamlit-ing! :balloon:"
-)
 

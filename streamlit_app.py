@@ -10,6 +10,7 @@ import seaborn as sns # visualisation!
 import matplotlib.pyplot as plt # visualisation!
 
 import plotly.express as px
+import plotly.graph_objects as go
 
 st.title("Pokemon Research Centre")
 
@@ -56,7 +57,6 @@ for i, (stat, val) in enumerate(pokemon_stats.items()):
 
 
 #stats chart 
-
 # Create a polar plot with Plotly
 
 st.header('Radar Chart of Base Stats')
@@ -70,15 +70,43 @@ stats_mapping = {
     'speed': 'Speed'
 }
 
+
 # Create a DataFrame with the mapped stats
 df_stats = pd.DataFrame([pokemon_stats]).rename(columns=stats_mapping)
 
 # Melt the DataFrame for Plotly polar plot
 df_stats_melted = df_stats.melt(var_name='Stat', value_name='Value')
 
-# use plotly express to plot out radar char of stats
-fig = px.line_polar(df_stats_melted, r='Value', theta='Stat', line_close=True, range_r=[0, 250])
-st.plotly_chart(fig)
+# Add a column for Pokemon name
+df_stats_melted['Pokemon'] = poke_name
 
+def plotRadar():
+    # use plotly express to plot out radar char of stats
+    fig = px.line_polar(df_stats_melted, r='Value', theta='Stat', line_close=True, range_r=[0, 250],color='Pokemon')
+    st.plotly_chart(fig)
 
+plotRadar()
+
+#st.write(df_stats_melted)
+pokemon_number2 = st.text_input(f"Compare {poke_name.title()} with:", placeholder = "Enter Pokemon ID / Name")
+
+if pokemon_number2:
+    url = f'https://pokeapi.co/api/v2/pokemon/{pokemon_number2}/'
+    response2 = requests.get(url)
+    pokemon2 = response2.json()
+    poke_name2 = pokemon2['name']
+    pokemon_stats2 = {stat['stat']['name']: stat['base_stat'] for stat in pokemon2["stats"]}
+    # Create a DataFrame with the mapped stats
+    df_stats2 = pd.DataFrame([pokemon_stats2]).rename(columns=stats_mapping)
+
+    # Melt the DataFrame for Plotly polar plot
+    df_stats_melted2 = df_stats2.melt(var_name='Stat', value_name='Value')
+
+    # Add a column for Pokemon name
+    df_stats_melted2['Pokemon'] = poke_name2
+
+    # Concatenate DataFrames for both Pokemon
+    df_stats_melted = pd.concat([df_stats_melted, df_stats_melted2])
+    
+    plotRadar()
 
